@@ -1,0 +1,8 @@
+al 0080BB .palette
+al 008077 .main
+al 000000 .frameCount
+al 008000 .irq
+al 008001 .reset
+al 00807A .nmi
+al 00FFFA .vectors
+al 000200 .oam
