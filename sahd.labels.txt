@@ -1,8 +1,12 @@
-al 0080BB .palette
+al 00824C .palette
+al 00808B .startDoubleDabble
 al 008077 .main
+al 000005 .binaryNumber
+al 000002 .decimalNumber
+al 000001 .mainLock
 al 000000 .frameCount
 al 008000 .irq
 al 008001 .reset
-al 00807A .nmi
+al 0081EE .nmi
 al 00FFFA .vectors
 al 000200 .oam

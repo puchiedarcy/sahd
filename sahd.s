@@ -51,6 +51,9 @@ vectors:
 
 .ZEROPAGE
 frameCount: .res 1
+mainLock: .res 1
+decimalNumber: .res 3
+binaryNumber: .res 1
 
 .CODE
 irq:
@@ -128,6 +131,51 @@ reset:
     sta oam + 6
 
 main:
+    lda #1
+    cmp mainLock
+    beq main
+    sta mainLock
+
+    lda frameCount
+    sta binaryNumber
+
+    lda #0
+    sta decimalNumber
+    sta decimalNumber+1
+    sta decimalNumber+2
+
+startDoubleDabble:
+.repeat 8
+    clc
+    rol binaryNumber
+    rol decimalNumber+2
+    rol decimalNumber+1
+    rol decimalNumber
+
+    lda decimalNumber+2
+    cmp #10
+    bcc :+
+        sbc #10
+        sta decimalNumber+2
+        lda decimalNumber+1
+        clc
+        adc #1
+        sta decimalNumber+1
+    :
+
+    lda decimalNumber+1
+    cmp #10
+    bcc :+
+        sbc #10
+        sta decimalNumber+1
+        lda decimalNumber
+        clc
+        adc #1
+        sta decimalNumber
+    :
+    plp
+.endrepeat
+
     jmp main
 nmi:
     pha
@@ -135,6 +183,19 @@ nmi:
     pha
     tya
     pha
+
+    lda #0
+    sta mainLock
+
+    lda #$23
+    sta PPU_ADDR
+    lda #$42
+    sta PPU_ADDR
+
+    .repeat 3, i
+        lda decimalNumber+i
+        sta PPU_DATA
+    .endrepeat
 
     inc frameCount
 
