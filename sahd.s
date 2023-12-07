@@ -7,9 +7,14 @@ PPU_ADDR        = $2006
 PPU_DATA        = $2007
 PPU_OAM_DMA     = $4014
 
-PPU_CTRL_ENABLE_NMI   = %10000000
-PPU_CTRL_SP_PATTERN_1 = %00001000
-PPU_CTRL_INC_32       = %00000100
+PPU_CTRL_ENABLE_NMI         = %10000000
+PPU_CTRL_SPRITE_8x16        = %00100000
+PPU_CTRL_BG_PATTERN_1       = %00010000
+PPU_CTRL_SP_PATTERN_1       = %00001000
+PPU_CTRL_INC_32             = %00000100
+PPU_CTRL_BASE_NAMETABLE_1   = %00000001
+PPU_CTRL_BASE_NAMETABLE_2   = %00000010
+PPU_CTRL_BASE_NAMETABLE_3   = %00000011
 
 PPU_MASK_EMP_BLUE           = %10000000
 PPU_MASK_EMP_GREEN          = %01000000
@@ -24,30 +29,9 @@ APU_DMC_ADDR    = $4010
 APU_STATUS_ADDR = $4015
 APU_FRAME_ADDR  = $4017
 
-NUM_16KB_PRG = 2
-NUM_8KB_CHR = 1
+NUM_16KB_PRG    = 2 ; Represents CPU memory $8000-$BFFF and $C000-$FFFF.
+NUM_8KB_CHR     = 1 ; Represents PPU memory $0000-$1FFF.
 MAPPER = 0
-
-.segment "HEADER"
-
-.byte "NES", $1A
-.byte NUM_16KB_PRG
-.byte NUM_8KB_CHR
-.byte MAPPER ; lo mapper / mirror / battery
-.byte MAPPER ; hi mapper / alt platforms
-.byte "PUCHIE_D"
-
-.segment "OAM"
-oam: .res 256
-
-.segment "TILES"
-.incbin "sahd.chr"
-
-.segment "VECTORS"
-vectors:
-.word nmi
-.word reset
-.word irq
 
 .ZEROPAGE
 frameCount: .res 1
@@ -55,35 +39,41 @@ mainLock: .res 1
 decimalNumber: .res 3
 binaryNumber: .res 1
 
+.segment "OAM"
+oam: .res 256 ; Dedicated space for sprites.
+
+.BSS
+
 .CODE
 irq:
     rti
 
 reset:
-    sei
-    cld
+    sei ; Disable interrupts.
+    cld ; Disable decimal mode.
 
-    ldx #$40
-    stx APU_FRAME_ADDR ; disable APU IRQ
+    ldx #%01000000
+    stx APU_FRAME_ADDR ; Disable APU IRQ.
 
     ldx #$FF
-    txs       ; initialize stack
+    txs ; Initialize stack pointer to grow down from $01FF.
     
-    inx
-    stx PPU_CTRL_ADDR   ; disable NMI
-    stx PPU_MASK_ADDR   ; disable rendering
-    stx APU_STATUS_ADDR ; disable APU sound
-    stx APU_DMC_ADDR    ; disable DMC IRQ
+    inx ; Sets X to 0.
+    stx PPU_CTRL_ADDR   ; Disable NMI.
+    stx PPU_MASK_ADDR   ; Disable rendering.
+    stx APU_STATUS_ADDR ; Disable APU sound.
+    stx APU_DMC_ADDR    ; Disable DMC IRQ.
     
-    bit PPU_STATUS_ADDR ; clear latch to ensure first vblank
+    bit PPU_STATUS_ADDR ; Clear VBlank across reset.
 
-    :
-        bit PPU_STATUS_ADDR
-        bpl :-
+    : ; Wait for VBLank 1 as PPU initializes.
+        bit PPU_STATUS_ADDR ; Bit 7 copied to N.
+        bpl :- ; Branch on N=0. Thus, loop until N=1 meaning VBlank happened.
 
-    ; clear all RAM to 0
+    ; In the meantime...
+    ; Clear all RAM to 0.
     txa
-    :
+    : ; X=0. Loop until X overflows back to 0.
         sta $0000, x
         sta $0100, x
         sta $0200, x
@@ -93,26 +83,26 @@ reset:
         sta $0600, x
         sta $0700, x
         inx
-        bne :-
+        bne :- ; Branch while X!=0.
         
-    ; place all sprites offscreen at Y=255
+    ; Place all sprites offscreen at Y=255.
     lda #255
     ldx #0
     :
-        sta oam, x
-        inx
-        inx
-        inx
-        inx
-        bne :-
+        sta oam, x ; Byte 0 of OAM is Y coordinate.
+        inx ; Skip byte 1, tile number.
+        inx ; Skip byte 2, attributes.
+        inx ; Skip byte 3, X coordinate.
+        inx ; Aligned to Byte 0 of next sprite.
+        bne :- ; Branch while X!=0.
 
-    :
+    : ; Wait for VBLank 2 as PPU initialization finalizes.
         bit PPU_STATUS_ADDR
         bpl :-
 
-    ; NES is initialized, ready to begin!
     lda #(PPU_CTRL_ENABLE_NMI)
     sta PPU_CTRL_ADDR
+
     lda #(PPU_MASK_SHOW_BACKGROUND | PPU_MASK_SHOW_LEFT8_BG | PPU_MASK_SHOW_SPRITES | PPU_MASK_SHOW_LEFT8_SP)
     sta PPU_MASK_ADDR
 
@@ -173,7 +163,6 @@ startDoubleDabble:
         adc #1
         sta decimalNumber
     :
-    plp
 .endrepeat
 
     jmp main
@@ -237,3 +226,21 @@ nmi:
 palette:
     .incbin "sahd-bg.pal"
     .incbin "sahd-sp.pal"
+
+.segment "HEADER"
+
+.byte "NES", $1A
+.byte NUM_16KB_PRG
+.byte NUM_8KB_CHR
+.byte MAPPER ; lo mapper / mirror / battery
+.byte MAPPER ; hi mapper / alt platforms
+.byte "PUCHIE_D"
+
+.segment "VECTORS" 
+vectors: ; CPU required interrupt vectors.
+.word nmi
+.word reset
+.word irq
+
+.segment "TILES"
+.incbin "sahd.chr" ; Load pattern tables.

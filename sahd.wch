@@ -1,0 +1,9 @@
+
+7
+00000	0000	b	u	0	frameCount
+00001	0001	b	u	0	mainLock
+00002	0000	S	S	0	BCD
+00003	0002	d	h	0	BCD
+00004	0002	b	u	0	BCD - Hundreds
+00005	0003	b	u	0	BCD - Tens
+00006	0004	b	u	0	BCD - Ones

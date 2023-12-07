@@ -1,6 +1,5 @@
-$824C#palette#
+$81E6#nmi#
 $808B#startDoubleDabble#
 $8077#main#
-$8000#irq#
 $8001#reset#
-$81EE#nmi#
+$8000#irq#
