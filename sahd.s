@@ -101,11 +101,12 @@ reset:
         bpl :-
 
     lda #(PPU_CTRL_ENABLE_NMI)
-    sta PPU_CTRL_ADDR
+    sta PPU_CTRL_ADDR ; Enable NMIs.
 
     lda #(PPU_MASK_SHOW_BACKGROUND | PPU_MASK_SHOW_LEFT8_BG | PPU_MASK_SHOW_SPRITES | PPU_MASK_SHOW_LEFT8_SP)
-    sta PPU_MASK_ADDR
+    sta PPU_MASK_ADDR ; Enable rendering.
 
+    ; Write some sprites into OAM.
     lda #$44
     sta oam
     sta oam + 3
@@ -122,10 +123,11 @@ reset:
 
 main:
     lda #1
-    cmp mainLock
-    beq main
-    sta mainLock
+    cmp mainLock ; Set to 0 during NMI.
+    beq main ; If mainLock=1, don't execute main.
+    sta mainLock ; Set mainLock to 1 to prevent future main executions.
 
+    ; Prepare double dabble registers.
     lda frameCount
     sta binaryNumber
 
@@ -166,16 +168,19 @@ startDoubleDabble:
 .endrepeat
 
     jmp main
+
 nmi:
+    ; Push registers to stack.
     pha
     txa
     pha
     tya
     pha
 
-    lda #0
+    lda #0 ; Release mainLock.
     sta mainLock
 
+    ; Print decimal number.
     lda #$23
     sta PPU_ADDR
     lda #$42
@@ -188,12 +193,13 @@ nmi:
 
     inc frameCount
 
+    ; Copy sprite OAM to PPU memory.
     ldx #0
     stx PPU_OAM_ADDR
     lda #>oam
     sta PPU_OAM_DMA
 
-    bit PPU_STATUS_ADDR
+    ; Write palette to PPU memory.
     lda #$3F
     sta PPU_ADDR
     lda #$00
@@ -207,13 +213,14 @@ nmi:
         cpx #32
         bcc :-
 
-    bit PPU_STATUS_ADDR
+    ; Set scroll coordinates.
     lda #0
     sta PPU_SCROLL_ADDR
     sta PPU_SCROLL_ADDR
     lda #(PPU_CTRL_ENABLE_NMI)
     sta PPU_CTRL_ADDR
 
+    ; Pop registers from stack.
     pla
     tay
     pla

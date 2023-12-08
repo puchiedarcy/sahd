@@ -1,7 +1,7 @@
 Modules list:
 -------------
 sahd.o:
-    CODE              Offs=000000  Size=000244  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=00023E  Align=00001  Fill=0000
     RODATA            Offs=000000  Size=000020  Align=00001  Fill=0000
     ZEROPAGE          Offs=000000  Size=000006  Align=00001  Fill=0000
     OAM               Offs=000000  Size=000100  Align=00001  Fill=0000
@@ -18,7 +18,7 @@ HEADER                000000  00000F  000010  00001
 TILES                 000000  001FFF  002000  00001
 ZEROPAGE              000000  000005  000006  00001
 OAM                   000200  0002FF  000100  00001
-CODE                  008000  008243  000244  00001
+CODE                  008000  00823D  00023E  00001
 RODATA                00C000  00C01F  000020  00001
 VECTORS               00FFFA  00FFFF  000006  00001
 
