@@ -36,6 +36,7 @@ MAPPER = 0
 .ZEROPAGE
 frameCount: .res 1
 mainLock: .res 1
+nmiLock: .res 1
 decimalNumber: .res 3
 binaryNumber: .res 1
 
@@ -122,6 +123,10 @@ reset:
     sta oam + 6
 
 main:
+
+    lda #0 ; Release nmiLock.
+    sta nmiLock
+
     lda #1
     cmp mainLock ; Set to 0 during NMI.
     beq main ; If mainLock=1, don't execute main.
@@ -180,6 +185,11 @@ nmi:
     lda #0 ; Release mainLock.
     sta mainLock
 
+    lda #1
+    cmp nmiLock ; Set to 0 during main.
+    beq endNMI ; If nmiLock=1, don't execute NMI.
+    sta nmiLock ; Set nmiLock to 1 to prevent future NMI executions.
+
     ; Print decimal number.
     lda #$23
     sta PPU_ADDR
@@ -220,6 +230,7 @@ nmi:
     lda #(PPU_CTRL_ENABLE_NMI)
     sta PPU_CTRL_ADDR
 
+endNMI:
     ; Pop registers from stack.
     pla
     tay

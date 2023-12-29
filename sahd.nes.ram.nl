@@ -1,5 +1,6 @@
 $0200#oam#
-$0005#binaryNumber#
-$0002#decimalNumber#
+$0006#binaryNumber#
+$0003#decimalNumber#
+$0002#nmiLock#
 $0001#mainLock#
 $0000#frameCount#
